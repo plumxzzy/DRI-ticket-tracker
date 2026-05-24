@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DRI Ticket Tracker</title>
+    <style>
+        :root {
+            --bg-dark: #070a13;
+            --card-bg: #0f1626;
+            --panel-bg: #172237;
+            --input-bg: #1e2d4a;
+            --border-color: #26395c;
+            --text-main: #f3f4f6;
+            --text-muted: #9ca3af;
+            --blue-glow: #3b82f6;
+            --green-glow: #10b981;
+            --amber-glow: #f59e0b;
+            --purple-glow: #8b5cf6;
+            --red-glow: #ef4444;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .tracker-card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 25px;
+            width: 100%;
+            max-width: 1150px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.6);
+            box-sizing: border-box;
+        }
+
+        .header-area {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 5px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        h1 { font-size: 1.6rem; margin: 0; letter-spacing: 0.5px; }
+        
+        .section-version { 
+            font-size: 0.75rem; 
+            font-weight: bold; 
+            letter-spacing: 1px;
+            padding: 3px 8px;
+            border-radius: 4px;
+        }
+        .v-tracker { color: var(--blue-glow); background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.2); }
+
+        .profile-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--panel-bg);
+            padding: 6px 12px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+
+        .controls-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 15px;
+            margin-bottom: 25px;
+            background: rgba(23, 34, 55, 0.4);
+            padding: 15px;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+        }
+
+        .input-group { display: flex; flex-direction: column; }
+        label { font-size: 0.75rem; color: var(--text-muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
+        
+        input[type="number"], select {
+            background-color: var(--input-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 10px;
+            color: white;
+            font-size: 0.95rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        input[type="number"]:focus, select:focus { border-color: var(--blue-glow); }
+
+        .smart-tools-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 25px;
+        }
+        @media (max-width: 768px) { .smart-tools-grid { grid-template-columns: 1fr; } }
+
+        .tool-box {
+            background: rgba(23, 34, 55, 0.3);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 15px 20px;
+        }
+        .tool-title { font-size: 0.8rem; text-transform: uppercase; color: var(--text-muted); font-weight: bold; margin-bottom: 10px; }
+        .tool-content { font-size: 0.95rem; line-height: 1.4; font-weight: 500; }
+
+        .table-wrapper {
+            overflow-x: auto;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            background-color: rgba(7, 10, 19, 0.5);
+            margin-bottom: 25px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: center;
+            font-size: 0.85rem;
+            min-width: 1000px;
+        }
+
+        th, td { padding: 12px 10px; border-bottom: 1px solid var(--border-color); white-space: nowrap; }
+        th { background-color: var(--panel-bg); color: var(--text-main); font-weight: 600; }
+        tr:last-child td { border-bottom: none; }
+        .td-highlight { color: var(--blue-glow); font-weight: bold; }
+        .td-remaining { color: var(--green-glow); font-weight: bold; }
+
+        .checkbox-cell { cursor: pointer; width: 18px; height: 18px; accent-color: var(--blue-glow); }
+
+        .bottom-sections {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 25px;
+        }
+        @media (max-width: 768px) { .bottom-sections { grid-template-columns: 1fr; } }
+
+        .metrics-panel {
+            background: var(--panel-bg);
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid var(--border-color);
+        }
+
+        .metric-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+        .metric-row:last-child { margin-bottom: 0; }
+        .metric-lbl { font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase; }
+        .metric-val { font-size: 1.2rem; font-weight: bold; }
+        .metric-val.amber { color: var(--amber-glow); }
+
+        .progress-box { margin-top: 15px; }
+        .bar-bg { background: var(--bg-dark); height: 12px; border-radius: 6px; overflow: hidden; border: 1px solid var(--border-color); }
+        .bar-fill { background: linear-gradient(90deg, var(--blue-glow), var(--green-glow)); width: 0%; height: 100%; transition: width 0.3s; }
+
+        .prediction-panel {
+            background: #060912;
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid var(--border-color);
+            border-left: 4px solid var(--blue-glow);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        .pred-title { font-size: 0.8rem; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.5px; margin-bottom: 15px; font-weight: bold; }
+
+        .achievements-panel {
+            background: rgba(15, 22, 38, 0.6);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 15px 20px;
+            margin-bottom: 25px;
+        }
+        .achievements-title { font-size: 0.8rem; text-transform: uppercase; color: var(--text-muted); font-weight: bold; margin-bottom: 12px; }
+        .achievements-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+        .ach-card {
+            background: var(--bg-dark); border: 1px solid var(--border-color); padding: 10px 12px; border-radius: 8px;
+            display: flex; align-items: center; gap: 12px; opacity: 0.25; transition: all 0.3s ease;
+        }
+        .ach-card.unlocked { opacity: 1; border-color: var(--purple-glow); box-shadow: 0 0 10px rgba(139, 92, 246, 0.2); }
+        .ach-icon { font-size: 1.5rem; }
+        .ach-info { display: flex; flex-direction: column; }
+        .ach-name { font-size: 0.85rem; font-weight: bold; color: var(--text-main); }
+        .ach-desc { font-size: 0.7rem; color: var(--text-muted); }
+
+        .footer { text-align: center; font-size: 0.75rem; color: var(--text-muted); margin-top: 25px; border-top: 1px solid var(--border-color); padding-top: 15px; }
+    </style>
+</head>
+<body>
+
+<div class="tracker-card">
+    
+    <div class="header-area">
+        <div style="display: flex; align-items: center; gap: 12px;">
+            <h1>DRI Ticket Tracker</h1>
+            <span class="section-version v-tracker">TRACKER V1.0</span>
+        </div>
+        <div class="profile-group">
+            <label style="margin: 0; color: white;">Active Account:</label>
+            <select id="active-profile" onchange="switchProfile()" style="padding: 5px 10px; font-size: 0.85rem;">
+                <option value="profile_1">Account #1 (Main)</option>
+                <option value="profile_2">Account #2 (Secondary)</option>
+                <option value="profile_3">Account #3 (Friend)</option>
+            </select>
+        </div>
+    </div>
+    <div style="margin-bottom: 20px;"></div>
+
+    <div class="controls-grid">
+        <div class="input-group">
+            <label>Current Tickets (B3)</label>
+            <input type="number" id="current-tickets" value="0" min="0" oninput="calculateAll()">
+        </div>
+        <div class="input-group">
+            <label>Include Potion Bundle? (B15)</label>
+            <select id="include-potion" onchange="calculateAll()">
+                <option value="False">False</option>
+                <option value="True">True</option>
+            </select>
+        </div>
+        <div class="input-group">
+            <label>Daily Playtime (Grind Predictor)</label>
+            <select id="daily-hours" onchange="calculateAll()">
+                <option value="24">24h (Non-stop / AFK)</option>
+                <option value="12">12 hours / day</option>
+                <option value="6">6 hours / day</option>
+                <option value="4">4 hours / day</option>
+                <option value="2">2 hours / day</option>
+                <option value="1">1 hour / day</option>
+            </select>
+        </div>
+        <div class="input-group">
+            <label>Target Gamepass (B17)</label>
+            <select id="target-gamepass" onchange="calculateAll()">
+                <option value="Gamepass bundle">Gamepass bundle</option>
+                <option value="Potion Bundle">Potion Bundle</option>
+                <option value="MVP">MVP</option>
+                <option value="Glyph Hunter">Glyph Hunter</option>
+                <option value="Rarity Master">Rarity Master</option>
+                <option value="Rune Master">Rune Master</option>
+                <option value="Double Essence">Double Essence</option>
+                <option value="Triple XP">Triple XP</option>
+                <option value="Double Coins">Double Coins</option>
+                <option value="VIP">VIP</option>
+                <option value="Lucky">Lucky</option>
+                <option value="Quick Roll">Quick Roll</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="smart-tools-grid">
+        <div class="tool-box" style="border-left: 4px solid var(--purple-glow);">
+            <div class="tool-title">🎯 Roadmap: Next Recommended Goal</div>
+            <div class="tool-content" id="roadmap-suggestion">Calculating next step...</div>
+        </div>
+        <div class="tool-box" id="bundle-advisor-box" style="border-left: 4px solid var(--amber-glow);">
+            <div class="tool-title">💸 Smart Bundle Advisor (Is it worth it?)</div>
+            <div class="tool-content" id="bundle-advisor-text">Analyzing owned gamepasses...</div>
+        </div>
+    </div>
+
+    <div class="table-wrapper">
+        <table>
+            <thead><tr id="row-headers"><th>Metric</th></tr></thead>
+            <tbody>
+                <tr id="row-required"><td style="text-align: left; font-weight: bold;">Tickets Required</td></tr>
+                <tr id="row-remaining"><td style="text-align: left; font-weight: bold;">Remaining Tickets</td></tr>
+                <tr id="row-time"><td style="text-align: left; font-weight: bold;">Time Left</td></tr>
+                <tr id="row-owned"><td style="text-align: left; font-weight: bold;">Owned?</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="bottom-sections">
+        <div class="metrics-panel">
+            <div class="metric-row">
+                <span class="metric-lbl">Gamepasses Completed:</span>
+                <span id="stat-completed" class="metric-val">0 of 11</span>
+            </div>
+            <div class="metric-row">
+                <span class="metric-lbl">Robux Saved:</span>
+                <span id="stat-robux" class="metric-val amber">0 R$</span>
+            </div>
+            <div class="progress-box">
+                <div class="metric-row" style="margin-bottom: 5px;">
+                    <span class="metric-lbl">Total Progress:</span>
+                    <span id="stat-progress" class="metric-val">0%</span>
+                </div>
+                <div class="bar-bg"><div id="progress-fill" class="bar-fill"></div></div>
+            </div>
+        </div>
+
+        <div class="prediction-panel">
+            <div class="pred-title">🎯 Target Analytics</div>
+            <div class="metric-row">
+                <span class="metric-lbl">Remaining Tickets:</span>
+                <span id="target-rem" class="metric-val" style="color: var(--green-glow);">0</span>
+            </div>
+            <div class="metric-row">
+                <span class="metric-lbl">Estimated Finish Date:</span>
+                <span id="target-date" class="metric-val" style="color: var(--blue-glow); font-size:1.1rem;">-</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="achievements-panel">
+        <div class="achievements-title">🏆 Dynamic Achievements</div>
+        <div class="achievements-grid">
+            <div class="ach-card" id="ach-first">
+                <div class="ach-icon">🥉</div>
+                <div class="ach-info"><span class="ach-name">First Step</span><span class="ach-desc">Own at least 1 Gamepass.</span></div>
+            </div>
+            <div class="ach-card" id="ach-half">
+                <div class="ach-icon">🥈</div>
+                <div class="ach-info"><span class="ach-name">Heavy Grinder</span><span class="ach-desc">Own 5 or more Gamepasses.</span></div>
+            </div>
+            <div class="ach-card" id="ach-rich">
+                <div class="ach-icon">💎</div>
+                <div class="ach-info"><span class="ach-name">Robux King</span><span class="ach-desc">Save more than 2,000 Robux.</span></div>
+            </div>
+            <div class="ach-card" id="ach-max">
+                <div class="ach-icon">👑</div>
+                <div class="ach-info"><span class="ach-name">Maxed Out!</span><span class="ach-desc">Complete all available goals.</span></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">Created by: @plumxzy & AI Collaborator</div>
+</div>
+
+<script>
+    const gamepasses = [
+        { id: "gp_bundle", name: "Gamepass bundle", cost: 1999, isBundle: true, isPotion: false },
+        { id: "potion_bundle", name: "Potion Bundle", cost: 1799, isBundle: false, isPotion: true },
+        { id: "mvp", name: "MVP", cost: 399, isBundle: false, isPotion: false },
+        { id: "glyph", name: "Glyph Hunter", cost: 399, isBundle: false, isPotion: false },
+        { id: "rarity", name: "Rarity Master", cost: 399, isBundle: false, isPotion: false },
+        { id: "rune", name: "Rune Master", cost: 399, isBundle: false, isPotion: false },
+        { id: "essence", name: "Double Essence", cost: 249, isBundle: false, isPotion: false },
+        { id: "xp", name: "Triple XP", cost: 249, isBundle: false, isPotion: false },
+        { id: "coins", name: "Double Coins", cost: 199, isBundle: false, isPotion: false },
+        { id: "vip", name: "VIP", cost: 149, isBundle: false, isPotion: false },
+        { id: "lucky", name: "Lucky", cost: 99, isBundle: false, isPotion: false },
+        { id: "quick", name: "Quick Roll", cost: 49, isBundle: false, isPotion: false }
+    ];
+
+    let isUpdatingCheckboxes = false;
+
+    function buildTrackerTableUI() {
+        const headersRow = document.getElementById('row-headers');
+        const requiredRow = document.getElementById('row-required');
+        const remainingRow = document.getElementById('row-remaining');
+        const timeRow = document.getElementById('row-time');
+        const ownedRow = document.getElementById('row-owned');
+
+        headersRow.innerHTML = "<th>Metric</th>";
+        requiredRow.innerHTML = "<td style='text-align: left; font-weight: bold;'>Tickets Required</td>";
+        remainingRow.innerHTML = "<td style='text-align: left; font-weight: bold;'>Remaining Tickets</td>";
+        timeRow.innerHTML = "<td style='text-align: left; font-weight: bold;'>Time Left</td>";
+        ownedRow.innerHTML = "<td style='text-align: left; font-weight: bold;'>Owned?</td>";
+
+        gamepasses.forEach(gp => {
+            const th = document.createElement('th'); th.innerText = gp.name; headersRow.appendChild(th);
+            const tdReq = document.createElement('td'); tdReq.className = 'td-highlight'; tdReq.innerText = gp.cost.toLocaleString(); requiredRow.appendChild(tdReq);
+            const tdRem = document.createElement('td'); tdRem.id = `rem-${gp.id}`; tdRem.className = 'td-remaining'; remainingRow.appendChild(tdRem);
+            const tdTime = document.createElement('td'); tdTime.id = `time-${gp.id}`; timeRow.appendChild(tdTime);
+            const tdOwned = document.createElement('td'); tdOwned.innerHTML = `<input type="checkbox" id="check-${gp.id}" class="checkbox-cell" onchange="handleCheckboxChange('${gp.id}')">`; ownedRow.appendChild(tdOwned);
+        });
+    }
+
+    function formatTime(minutes) {
+        if (minutes <= 0) return "0 hours";
+        const days = Math.floor(minutes / 1440); const hours = Math.floor((minutes % 1440) / 60); const mins = Math.round(minutes % 60);
+        let str = ""; if (days > 0) str += `${days} days, `; if (hours > 0 || days > 0) str += `${hours} hours and `;
+        str += `${mins} minutes`; return str;
+    }
+
+    function handleCheckboxChange(changedId) {
+        if (isUpdatingCheckboxes) return;
+        isUpdatingCheckboxes = true;
+        const normalPasesIds = gamepasses.filter(gp => !gp.isBundle && !gp.isPotion).map(gp => gp.id);
+        if (changedId === 'gp_bundle') {
+            const bundleStatus = document.getElementById('check-gp_bundle').checked;
+            normalPasesIds.forEach(id => { 
+                const el = document.getElementById(`check-${id}`);
+                if(el) el.checked = bundleStatus; 
+            });
+        } else if (normalPasesIds.includes(changedId)) {
+            const allNormalsChecked = normalPasesIds.every(id => {
+                const el = document.getElementById(`check-${id}`);
+                return el ? el.checked : false;
+            });
+            const bundleEl = document.getElementById('check-gp_bundle');
+            if(bundleEl) bundleEl.checked = allNormalsChecked;
+        }
+        isUpdatingCheckboxes = false;
+        calculateAll();
+    }
+
+    function switchProfile() { loadProfileData(); }
+
+    function calculateAll() {
+        const currentProfile = document.getElementById('active-profile').value;
+        const currentTickets = parseInt(document.getElementById('current-tickets').value) || 0;
+        const includePotion = document.getElementById('include-potion').value === "True";
+        const selectedTargetName = document.getElementById('target-gamepass').value;
+        const dailyHours = parseFloat(document.getElementById('daily-hours').value) || 24;
+
+        let totalRobuxSaved = 0; let ownedCount = 0; let maxCompletedPossible = includePotion ? 12 : 11;
+        let unownedLoosePasesCostSum = 0; let unownedLooseCount = 0; let nextBestPass = null;
+
+        const saveState = { tickets: currentTickets, includePotion: includePotion, target: selectedTargetName, dailyHours: dailyHours, owned: {} };
+
+        gamepasses.forEach(gp => {
+            const cb = document.getElementById(`check-${gp.id}`);
+            const isOwned = cb ? cb.checked : false;
+            saveState.owned[gp.id] = isOwned;
+            let remaining = gp.cost - currentTickets; if (remaining < 0) remaining = 0;
+
+            if (isOwned) {
+                remaining = 0;
+                if (!gp.isBundle) { if (!gp.isPotion || (gp.isPotion && includePotion)) totalRobuxSaved += gp.cost; }
+                if (!gp.isPotion || (gp.isPotion && includePotion)) ownedCount++;
+            } else {
+                if (!gp.isBundle && !gp.isPotion) {
+                    unownedLoosePasesCostSum += gp.cost; unownedLooseCount++;
+                    if (!nextBestPass || gp.cost < nextBestPass.cost) nextBestPass = gp;
+                }
+            }
+            const remEl = document.getElementById(`rem-${gp.id}`);
+            const timeEl = document.getElementById(`time-${gp.id}`);
+            if (remEl) remEl.innerText = remaining.toLocaleString();
+            if (timeEl) timeEl.innerText = remaining === 0 ? "0 hours" : formatTime(remaining * 5);
+        });
+
+        const mainBundleCb = document.getElementById('check-gp_bundle');
+        if (mainBundleCb && mainBundleCb.checked) {
+            const potionCb = document.getElementById('check-potion_bundle');
+            ownedCount = includePotion && potionCb && potionCb.checked ? 12 : 11;
+        }
+
+        localStorage.setItem(`dri_state_${currentProfile}`, JSON.stringify(saveState));
+        localStorage.setItem('dri_active_profile_id', currentProfile);
+
+        document.getElementById('stat-completed').innerText = `${ownedCount} of ${maxCompletedPossible}`;
+        document.getElementById('stat-robux').innerText = `${totalRobuxSaved.toLocaleString()} R$`;
+        const progressPercent = Math.min(Math.round((ownedCount / maxCompletedPossible) * 100), 100);
+        document.getElementById('stat-progress').innerText = `${progressPercent}%`;
+        document.getElementById('progress-fill').style.width = `${progressPercent}%`;
+
+        const roadmapText = document.getElementById('roadmap-suggestion');
+        if ((mainBundleCb && mainBundleCb.checked) || unownedLooseCount === 0) {
+            roadmapText.innerHTML = "🎉 <span style='color: var(--green-glow);'>All base gamepasses unlocked! You master the grind.</span>";
+        } else if (nextBestPass) {
+            if (currentTickets >= nextBestPass.cost) {
+                roadmapText.innerHTML = `🔥 Ready to unlock: Buy <span style='color: var(--purple-glow); font-weight:bold;'>${nextBestPass.name}</span> right now!`;
+            } else {
+                roadmapText.innerHTML = `⛏️ Next easiest goal: <span style='color: var(--blue-glow); font-weight:bold;'>${nextBestPass.name}</span>. Need <span style='color: var(--amber-glow);'>${(nextBestPass.cost - currentTickets).toLocaleString()}</span> tkts.`;
+            }
+        }
+
+        const advisorText = document.getElementById('bundle-advisor-text');
+        const advisorBox = document.getElementById('bundle-advisor-box');
+        if ((mainBundleCb && mainBundleCb.checked) || unownedLooseCount === 0) {
+            advisorText.innerHTML = "Bundle completed."; advisorBox.style.borderLeftColor = "var(--border-color)";
+        } else {
+            if (unownedLoosePasesCostSum > 1999) {
+                advisorText.innerHTML = `✅ <span style='color: var(--green-glow); font-weight:bold;'>BUY THE BUNDLE!</span> Saves ${(unownedLoosePasesCostSum - 1999).toLocaleString()} tkts.`;
+                advisorBox.style.borderLeftColor = "var(--green-glow)";
+            } else {
+                advisorText.innerHTML = `❌ <span style='color: var(--red-glow); font-weight:bold;'>BUY SEPARATELY!</span> Bundle wastes ${(1999 - unownedLoosePasesCostSum).toLocaleString()} tkts.`;
+                advisorBox.style.borderLeftColor = "var(--red-glow)";
+            }
+        }
+
+        const targetObj = gamepasses.find(gp => gp.name === selectedTargetName);
+        if (targetObj) {
+            const targetCheck = document.getElementById(`check-${targetObj.id}`);
+            const isTargetOwned = targetCheck ? targetCheck.checked : false;
+            let targetRem = targetObj.cost - currentTickets; if (targetRem < 0) targetRem = 0;
+            document.getElementById('target-rem').innerText = isTargetOwned ? "0" : targetRem.toLocaleString();
+
+            if (isTargetOwned) document.getElementById('target-date').innerText = "Already Owned! 🎉";
+            else if (targetRem === 0) document.getElementById('target-date').innerText = "COMPLETED! 🎉";
+            else {
+                const totalMinutes = ((targetRem * 5) / 60 / dailyHours) * 24 * 60;
+                let finishDate = new Date(); 
+                finishDate.setMinutes(finishDate.getMinutes() + totalMinutes);
+                
+                if (!isNaN(finishDate.getTime())) {
+                    document.getElementById('target-date').innerText = `${finishDate.getFullYear()}-${String(finishDate.getMonth() + 1).padStart(2,'0')}-${String(finishDate.getDate()).padStart(2,'0')} ${String(finishDate.getHours()).padStart(2,'0')}:${String(finishDate.getMinutes()).padStart(2,'0')}`;
+                } else {
+                    document.getElementById('target-date').innerText = "-";
+                }
+            }
+        }
+
+        document.getElementById('ach-first').classList.toggle('unlocked', ownedCount >= 1);
+        document.getElementById('ach-half').classList.toggle('unlocked', ownedCount >= 5);
+        document.getElementById('ach-rich').classList.toggle('unlocked', totalRobuxSaved > 2000);
+        document.getElementById('ach-max').classList.toggle('unlocked', ownedCount === maxCompletedPossible);
+    }
+
+    function loadProfileData() {
+        const currentProfile = document.getElementById('active-profile').value;
+        const rawData = localStorage.getItem(`dri_state_${currentProfile}`);
+        
+        isUpdatingCheckboxes = true;
+        gamepasses.forEach(gp => { 
+            const cb = document.getElementById(`check-${gp.id}`); 
+            if (cb) cb.checked = false; 
+        });
+        isUpdatingCheckboxes = false;
+
+        if (rawData) {
+            try {
+                const data = JSON.parse(rawData);
+                document.getElementById('current-tickets').value = data.tickets || 0;
+                document.getElementById('include-potion').value = data.includePotion ? "True" : "False";
+                document.getElementById('target-gamepass').value = data.target || "Gamepass bundle";
+                document.getElementById('daily-hours').value = data.dailyHours || "24";
+
+                if (data.owned) {
+                    isUpdatingCheckboxes = true;
+                    Object.keys(data.owned).forEach(id => { 
+                        const cb = document.getElementById(`check-${id}`); 
+                        if (cb) cb.checked = data.owned[id]; 
+                    });
+                    isUpdatingCheckboxes = false;
+                }
+            } catch(e) { console.error(e); }
+        } else {
+            document.getElementById('current-tickets').value = 0; document.getElementById('include-potion').value = "False";
+            document.getElementById('target-gamepass').value = "Gamepass bundle"; document.getElementById('daily-hours').value = "24";
+        }
+        calculateAll();
+    }
+
+    document.addEventListener("DOMContentLoaded", function() {
+        buildTrackerTableUI();
+
+        const lastActiveProfile = localStorage.getItem('dri_active_profile_id');
+        if (lastActiveProfile) document.getElementById('active-profile').value = lastActiveProfile;
+
+        loadProfileData();
+    });
+</script>
+
+</body>
+</html>
