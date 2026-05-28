@@ -395,4 +395,26 @@ tr:last-child td {
     margin-top: 25px;
     border-top: 1px solid var(--border-color);
     padding-top: 15px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+/* ===== View Counter ===== */
+.view-counter-container {
+    font-size: 0.8rem;
+    padding: 8px 12px;
+    background: rgba(59, 130, 246, 0.1);
+    border: 1px solid rgba(59, 130, 246, 0.2);
+    border-radius: 6px;
+    color: var(--blue-glow);
+    font-weight: 500;
+    letter-spacing: 0.5px;
+    display: inline-block;
+    margin: 0 auto;
+}
+
+#view-count {
+    font-weight: bold;
+    font-size: 0.9rem;
 }
