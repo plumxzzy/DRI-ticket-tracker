@@ -10,10 +10,10 @@ const TRACKER_CONFIG = {
     ROBUX_ACHIEVEMENT_THRESHOLD: 2000,
     LOCAL_STORAGE_PREFIX: 'dri_state_',
     PROFILE_KEY: 'dri_active_profile_id',
-    VIEW_COUNT_KEY: 'dri_view_count',
     MIN_PLAYTIME: 0.1,
     DEFAULT_PLAYTIME: 24,
-    TICKET_TO_TIME_MULTIPLIER: 5 // Each ticket = 5 minutes
+    TICKET_TO_TIME_MULTIPLIER: 5, // Each ticket = 5 minutes
+    VERCEL_API_URL: 'https://dri-ticket-tracker.vercel.app/api/view-counter' // Change this to your deployed Vercel URL
 };
 
 // ===== GAMEPASS DATA =====
@@ -35,31 +35,26 @@ const gamepasses = [
 let isUpdatingCheckboxes = false;
 
 /**
- * Increments and displays the view counter
- * Stores count in localStorage and updates the UI
+ * Fetches and displays global view count from Vercel API
+ * Only increments if this IP hasn't viewed today
  */
-function updateViewCounter() {
+async function updateGlobalViewCounter() {
     try {
-        // Get current view count from localStorage
-        let viewCount = parseInt(localStorage.getItem(TRACKER_CONFIG.VIEW_COUNT_KEY)) || 0;
+        const response = await fetch(TRACKER_CONFIG.VERCEL_API_URL);
+        const data = await response.json();
         
-        // Increment by 1
-        viewCount++;
-        
-        // Save back to localStorage
-        localStorage.setItem(TRACKER_CONFIG.VIEW_COUNT_KEY, viewCount.toString());
-        
-        // Update the UI with formatted number
-        const viewCountElement = document.getElementById('view-count');
-        if (viewCountElement) {
-            viewCountElement.innerText = viewCount.toLocaleString();
+        if (data.success && data.views !== undefined) {
+            const viewCountElement = document.getElementById('view-count');
+            if (viewCountElement) {
+                viewCountElement.innerText = data.views.toLocaleString();
+            }
         }
     } catch (error) {
-        console.error('Error updating view counter:', error);
-        // Fallback: show error message
+        console.error('Error updating global view counter:', error);
+        // Fallback: show loading indicator
         const viewCountElement = document.getElementById('view-count');
         if (viewCountElement) {
-            viewCountElement.innerText = 'Error';
+            viewCountElement.innerText = 'Loading...';
         }
     }
 }
@@ -472,8 +467,8 @@ function resetToDefaults() {
  * Initialize the application on DOM load
  */
 document.addEventListener("DOMContentLoaded", function() {
-    // Update view counter on page load
-    updateViewCounter();
+    // Update global view counter on page load
+    updateGlobalViewCounter();
     
     // Build the table UI
     buildTrackerTableUI();
