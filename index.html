@@ -692,7 +692,12 @@ function makeGrad(colors) {
 let currentCategory = 'Main';
 let currentPack = null, currentRune = null, currentCount = 1;
 let savedRuneCounts = JSON.parse(localStorage.getItem('dri_rune_counts')) || {};
-let simLuck = 1, simBulk = 1, simSpeed = 1, simClone = 0;
+let savedSimStats = JSON.parse(localStorage.getItem('dri_sim_stats')) || {};
+let simLuck = savedSimStats.luck !== undefined ? savedSimStats.luck : 1;
+let simBulk = savedSimStats.bulk !== undefined ? savedSimStats.bulk : 1;
+let simSpeed = savedSimStats.speed !== undefined ? savedSimStats.speed : 1;
+let simClone = savedSimStats.clone !== undefined ? savedSimStats.clone : 0;
+
 
 function setCategory(cat) {
     currentCategory = cat;
@@ -771,6 +776,8 @@ function updateSim(type, val) {
     if(type === 'bulk') simBulk = num || 1;
     if(type === 'speed') simSpeed = num || 1;
     if(type === 'clone') simClone = num || 0;
+    
+    localStorage.setItem('dri_sim_stats', JSON.stringify({luck: simLuck, bulk: simBulk, speed: simSpeed, clone: simClone}));
     
     // update inputs
     if(type === 'luck') document.getElementById('simInp-luck').value = fmtNum(simLuck).replace('.00','');
