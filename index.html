@@ -691,8 +691,10 @@ function makeGrad(colors) {
 
 let currentCategory = 'Main';
 let currentPack = null, currentRune = null, currentCount = 1;
-let savedRuneCounts = JSON.parse(localStorage.getItem('dri_rune_counts')) || {};
-let savedSimStats = JSON.parse(localStorage.getItem('dri_sim_stats')) || {};
+let savedRuneCounts = {};
+try { savedRuneCounts = JSON.parse(localStorage.getItem('dri_rune_counts')) || {}; } catch(e) {}
+let savedSimStats = {};
+try { savedSimStats = JSON.parse(localStorage.getItem('dri_sim_stats')) || {}; } catch(e) {}
 let simLuck = savedSimStats.luck !== undefined ? savedSimStats.luck : 1;
 let simBulk = savedSimStats.bulk !== undefined ? savedSimStats.bulk : 1;
 let simSpeed = savedSimStats.speed !== undefined ? savedSimStats.speed : 1;
@@ -972,7 +974,7 @@ const TRACKER_CONFIG = {
     MIN_PLAYTIME: 0.1,
     DEFAULT_PLAYTIME: 24,
     TICKET_TO_TIME_MULTIPLIER: 5, // Each ticket = 5 minutes
-    VERCEL_API_URL: 'https://dri-ticket-tracker.vercel.app/api/view-counter' // Change this to your deployed Vercel URL
+    VERCEL_API_URL: '/api/view-counter' // Relative path to work on any deployed domain
 };
 
 // ===== GAMEPASS DATA =====
