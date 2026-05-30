@@ -65,10 +65,8 @@ h1{text-align:center;font-size:2.5rem;font-weight:900;background:linear-gradient
 .boost-maxed{color:var(--maxed);font-weight:800;font-size:0.75rem;padding:3px 10px;border-radius:6px;background:rgba(0,255,170,0.1);border:1px solid rgba(0,255,170,0.2);margin-top:2px;display:inline-flex;align-items:center;justify-content:center;min-width:76px;text-align:center;}
 .boost-maxed.not-maxed{color:var(--text2);background:rgba(255,255,255,0.05);border-color:rgba(255,255,255,0.1);}
 .progress-bar{height:6px;border-radius:3px;background:rgba(255,255,255,0.06);overflow:hidden;position:relative;margin-top:14px}
-.progress-fill{height:100%;border-radius:3px;transition:width 0.4s cubic-bezier(0.4,0,0.2,1);position:relative}
-.progress-fill::after{content:'';position:absolute;top:0;right:0;width:20px;height:100%;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.3));opacity:0}
-.progress-fill.maxed::after{opacity:1;animation:shimmer 2s infinite}
-@keyframes shimmer{0%{transform:translateX(-20px)}100%{transform:translateX(20px)}}
+.progress-fill{height:100%;border-radius:3px;position:relative}
+
 .boost-bottom{display:flex;justify-content:space-between;align-items:center;margin-top:12px;font-size:0.8rem;color:var(--text2)}
 .runes-needed{font-weight:700}
 .runes-needed.maxed-count{color:var(--maxed)}
@@ -114,6 +112,7 @@ h1{text-align:center;font-size:2.5rem;font-weight:900;background:linear-gradient
 .rune-card .rune-name{
  font-size:1.15rem!important;
  margin-bottom:8px!important;
+ display:inline-block!important;
 }
 .rune-card.active{
  border-color:var(--glow-color)!important;
@@ -606,8 +605,13 @@ for(let idx=3; idx<=999; idx++) {
 function fmtNum(n) {
     if (n < 1000) return (Number.isInteger(n) ? n.toString() : n.toFixed(2));
     const e = Math.floor(Math.log10(n));
-    const power = Math.floor(e / 3);
-    const m = n / Math.pow(10, power * 3);
+    let power = Math.floor(e / 3);
+    let m = n / Math.pow(10, power * 3);
+    
+    if (Math.round(m * 100) / 100 >= 1000) {
+        m = m / 1000;
+        power++;
+    }
     
     let suffix = "";
     if (power === 1) suffix = "k";
@@ -824,16 +828,18 @@ function renderDetail() {
     const effectiveChance = Math.min(1, baseChance * simLuck);
     const rate = simSpeed * effectiveChance * simBulk * (1 + simClone);
 
-    let html = `<div class="detail-header animate-in"><h2 style="background:${makeGrad(rune.gradient)};-webkit-background-clip:text;-webkit-text-fill-color:transparent">${currentRune} ${rune.secret?'<span style="font-size:0.7em;background:linear-gradient(135deg,#ff5caa,#7c5cff);-webkit-background-clip:text">Secret</span>':''}</h2><div class="chance-display">Chance: <span>${fmtChance(rune.chance/100)}</span></div></div>`;
+    let html = `<div class="detail-header animate-in"><div style="display:flex; align-items:center; gap:12px; margin-bottom:8px;"><h2 style="margin:0; display:inline-block; width:fit-content; background:${makeGrad(rune.gradient)};-webkit-background-clip:text;-webkit-text-fill-color:transparent">${currentRune}</h2>${rune.secret?'<span style="color:var(--text2); font-weight:400">|</span> <span style="font-size:0.8rem; background:linear-gradient(135deg,#ff5caa,#7c5cff);-webkit-background-clip:text;-webkit-text-fill-color:transparent; font-weight:800; letter-spacing:0.5px; text-transform:uppercase;">Secret</span>':''}</div><div class="chance-display">Chance: <span>${fmtChance(rune.chance/100)}</span></div></div>`;
     
     html += `<div class="calc-section"><label>Enter Rune Count</label><div class="calc-input-row"><input type="text" class="calc-input" id="countInput" value="${fmtNum(currentCount).replace('.00','')}" onchange="updateCount(this.value, 'input', ${sliderMaxLog})" oninput="updateCount(this.value, 'input', ${sliderMaxLog})"><input type="range" class="calc-slider" id="countSlider" min="0" max="100" step="any" value="${(Math.log10(currentCount+1)/sliderMaxLog)*100}" oninput="updateCount(this.value, 'slider', ${sliderMaxLog})"></div></div>`;
     
     html += `<div class="boost-list">`;
     boostEntries.forEach(([bName, b], i) => {
-        const val = calcBoost(currentCount, b);
-        const pct = Math.min((val/b.max)*100, 100);
+        let val = calcBoost(currentCount, b);
+        if (val >= b.max * 0.999) val = b.max; // 0.1% forgiveness snaps to MAX
         const maxN = findMaxCount(b);
         const isMaxed = val >= b.max;
+        
+        let pct = Math.min((val/b.max)*100, 100);
         
         let rem = Math.max(0, maxN - currentCount);
         let timeStr = (!isMaxed && maxN !== Infinity && rate > 0) ? `Time Left : ${formatTime(rem/rate)}` : '';
@@ -886,12 +892,8 @@ function updateCount(v, source, sliderMaxLog) {
         slider.value = Math.min(100, Math.max(0, pct));
     }
     
-    if (source === 'slider') {
-        // Partial update: only redraw canvases and update text values, keep DOM intact
-        updateBoostValuesOnly();
-    } else {
-        renderDetail();
-    }
+    // Partial update: only update text values, keep DOM intact
+    updateBoostValuesOnly();
 }
 
 function updateBoostValuesOnly() {
@@ -905,10 +907,12 @@ function updateBoostValuesOnly() {
     const rate = simSpeed * effectiveChance * simBulk * (1 + simClone);
 
     boostEntries.forEach(([bName, b]) => {
-        const val = calcBoost(currentCount, b);
-        const pct = Math.min((val / b.max) * 100, 100);
+        let val = calcBoost(currentCount, b);
+        if (val >= b.max * 0.999) val = b.max;
         const maxN = findMaxCount(b);
         const isMaxed = val >= b.max;
+
+        let pct = Math.min((val / b.max) * 100, 100);
 
         // Update current value text
         const valEl = document.getElementById('bval-' + bName.replace(/\s+/g,'_').replace(/[^a-zA-Z0-9_]/g,''));
@@ -930,7 +934,11 @@ function updateBoostValuesOnly() {
 
         // Update progress bar
         const pbEl = document.getElementById('bprog-' + bName.replace(/\s+/g,'_').replace(/[^a-zA-Z0-9_]/g,''));
-        if (pbEl) pbEl.style.width = pct.toFixed(1) + '%';
+        if (pbEl) {
+            pbEl.style.width = pct.toFixed(1) + '%';
+            if (isMaxed) pbEl.classList.add('maxed');
+            else pbEl.classList.remove('maxed');
+        }
 
         // Update bottom texts
         const pctEl = document.getElementById('bpct-' + bName.replace(/\s+/g,'_').replace(/[^a-zA-Z0-9_]/g,''));
